@@ -1,0 +1,12 @@
+{
+  "name": "bazel-typescript-example",
+  "version": "1.0.0",
+  "description": "A minimal example of bazel rules to compile TypeScript. EXAMPLE CODE ONLY don't actually use please.",
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^3.1.6"
+  },
+  "scripts": {},
+  "author": "Martin Probst <martin@probst.io>",
+  "license": "ISC"
+}
