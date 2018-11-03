@@ -22,12 +22,20 @@ def _outfile(ctx, s, ext):
     return ctx.actions.declare_file(s.short_path.replace(".ts", ext))
 
 def _ts_library_impl(ctx):
+    """The implementation of ts_library.
+
+    A minimal example that for a TypeScript build rule that handles input,
+    output, and transitive dependencies.
+    """
+
     print("""
 WARNING: do not use this code, it's only for demonstration.
 https://github.com/bazelbuild/rules_typescript has a real implementation.
 """)
+    # Declare the output files created by this rule from the srcs.
     js = [_outfile(ctx, s, ".js") for s in ctx.files.srcs]
     dts = [_outfile(ctx, s, ".d.ts") for s in ctx.files.srcs]
+    # Collect the transitive TypeScript info from deps.
     deps_dts = [dep[TypeScriptInfo].dts for dep in ctx.attr.deps]
     deps_js = [dep[TypeScriptInfo].js for dep in ctx.attr.deps]
 
@@ -38,6 +46,7 @@ https://github.com/bazelbuild/rules_typescript has a real implementation.
     # TS resolves paths relative to the tsconfig.json file. to_root specifies
     # the ../ path back to the root of our repository from the tsconfig.json.
     to_root = len(cfg.dirname.split("/")) * "../"
+    # Cannot pass rootDirs on the command line, so create a tsconfig.json.
     ctx.actions.write(
         cfg,
         content="""{{
@@ -45,16 +54,23 @@ https://github.com/bazelbuild/rules_typescript has a real implementation.
         "baseUrl": "{baseDir}",
         "rootDirs": [
             "{baseDir}",
-            "{baseDir}/bazel-out/k8-fastbuild/bin/",
-            "{baseDir}/bazel-out/k8-fastbuild/genfiles/"
+            "{baseDir}{genDir}",
+            "{baseDir}{binDir}"
         ],
         "declaration": true,
         "outDir": "."
     }},
     "files": {files}
 }}
-""".format(baseDir=to_root, files=[to_root + f.path for f in inputs]))
+""".format(
+    baseDir=to_root,
+    genDir=ctx.bin_dir.path,
+    binDir=ctx.genfiles_dir.path,
+    files=[to_root + f.path for f in inputs]))
 
+    # Declare the action that runs TypeScript compiler.
+    # This does not immediately execute - it only tells bazel that if the
+    # inputs changed, it has to run this action to produce the outputs.
     ctx.actions.run(
         executable = ctx.executable._node,
         tools = ctx.files._tsc,
@@ -67,6 +83,8 @@ https://github.com/bazelbuild/rules_typescript has a real implementation.
         ],
     )
 
+    # Return TypeScript info for rules that depend on this one.
+    # DefaultInfo tells bazel what to build by default (the local files).
     return [
         DefaultInfo(files = depset(js + dts)),
         TypeScriptInfo(
