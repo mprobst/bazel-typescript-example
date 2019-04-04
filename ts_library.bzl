@@ -95,8 +95,8 @@ https://github.com/bazelbuild/rules_typescript has a real implementation.
 
 ts_library = rule(
     implementation = _ts_library_impl,
-    attrs = {
+    attrs = dict({
         "srcs": attr.label_list(allow_files = True),
         "deps": attr.label_list(),
-    } + _TOOLS,
+    }.items() + _TOOLS.items()),
 )
